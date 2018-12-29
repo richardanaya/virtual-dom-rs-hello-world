@@ -5,11 +5,11 @@ use virtual_dom_rs::VirtualNode;
 use virtual_dom_rs::JsCast;
 use web_sys::Element;
 
-// HelloWorld component just sys hello along with a global counter value
-struct HelloWorld {}
-
 // Holds a global counter to show something changing in UI
 static mut COUNT:i32 = 0;
+
+// HelloWorld component just sys hello along with a global counter value
+struct HelloWorld {}
 
 impl HelloWorld {
     fn new() ->  HelloWorld {
@@ -64,9 +64,10 @@ pub fn run() -> Result<(), JsValue> {
     let document = window.document().unwrap();
     let body = virtual_dom_rs::Element::from(document.body().unwrap());
 
-    // This is my roo component
+    // This is my root component
     let hello_world = HelloWorld::new();
 
+    // create our renderer
     let mut renderer = VirtualDomRenderer::new(body);
     renderer.render(&mut hello_world.render());
 
@@ -74,12 +75,13 @@ pub fn run() -> Result<(), JsValue> {
     // So, this looks really complicated, but basically we are just
     // 1. creating a complicated reference of a Closure
     // 2. saying we want it called ever 1000 ms (1 second)
-    // 3. then forgetting it so that it doesn't get dropped and cause an error the next timer
+    // 3. then forgetting the closure so that it doesn't get dropped and cause an error the next timer
     let a = Closure::wrap(Box::new(move || {
+        // increment our counter
         unsafe {
             COUNT += 1;
         }
-        let hello_world = HelloWorld::new();
+        // render it again, this time letting virtual dom update things because we'll have previous dom
         renderer.render(&mut hello_world.render());
     }) as Box<dyn FnMut()>);
     window.set_interval_with_callback_and_timeout_and_arguments_0(a.as_ref().unchecked_ref(), 1000)?;
