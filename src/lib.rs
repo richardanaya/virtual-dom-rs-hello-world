@@ -3,10 +3,12 @@ extern crate virtual_dom_rs;
 use wasm_bindgen::prelude::*;
 use virtual_dom_rs::VirtualNode;
 use virtual_dom_rs::JsCast;
+use web_sys::Element;
 
 // HelloWorld component just sys hello along with a global counter value
 struct HelloWorld {}
 
+// Holds a global counter to show something changing in UI
 static mut COUNT:i32 = 0;
 
 impl HelloWorld {
@@ -28,31 +30,45 @@ impl HelloWorld {
     }
 }
 
+// This object will help us store the previous dom and render to a target element
+struct VirtualDomRenderer {
+    root_element: Element,
+    previous_vdom: Option<VirtualNode>,
+}
 
-pub fn render_to_dom(root_element:web_sys::Element,previous_vdom:&Option<VirtualNode>,new_vdom:&mut VirtualNode) {
-    if let Some(p_vd) = previous_vdom {
-        // If its not the first time, calculate the DOM dif and apply to root dom contents
-        let patches = virtual_dom_rs::diff(&p_vd, new_vdom);
-        virtual_dom_rs::patch(root_element, &patches);
-    }  else {
-        // If its the first time just set the contents of the DOM to string
-        root_element.set_inner_html(&new_vdom.to_string());
+impl VirtualDomRenderer {
+    fn new(root_element:Element) -> VirtualDomRenderer {
+        VirtualDomRenderer {
+            root_element:root_element,
+            previous_vdom:None
+        }
+    }
+
+    fn render(&mut self, new_vdom:&mut VirtualNode) {
+        if let Some(p_vd) = &self.previous_vdom {
+            // If its not the first time, calculate the DOM dif and apply to root dom contents
+            let patches = virtual_dom_rs::diff(&p_vd, new_vdom);
+            virtual_dom_rs::patch(self.root_element.clone(), &patches);
+        }  else {
+            // If its the first time just set the contents of the DOM to string
+            self.root_element.set_inner_html(&new_vdom.to_string());
+        }
     }
 }
+
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     // Let's first get the body since this is going to be our root node
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
-    let body = document.body().unwrap();
+    let body = virtual_dom_rs::Element::from(document.body().unwrap());
 
+    // This is my roo component
     let hello_world = HelloWorld::new();
 
-    // Originally we have no DOM and count is 0, let's do our first render
-    let previous_vdom = None;
-    let mut new_vdom = hello_world.render();
-    render_to_dom(virtual_dom_rs::Element::from(body), &previous_vdom,&mut new_vdom);
+    let mut renderer = VirtualDomRenderer::new(body);
+    renderer.render(&mut hello_world.render());
 
     // Now we are going to increment the counter and render every second
     // So, this looks really complicated, but basically we are just
@@ -63,10 +79,9 @@ pub fn run() -> Result<(), JsValue> {
         unsafe {
             COUNT += 1;
         }
-        let mut new_vdom = hello_world.render();
-        let body = document.body().unwrap();
-        render_to_dom(virtual_dom_rs::Element::from(body), &previous_vdom,&mut new_vdom);
-    }) as Box<dyn Fn()>);
+        let hello_world = HelloWorld::new();
+        renderer.render(&mut hello_world.render());
+    }) as Box<dyn FnMut()>);
     window.set_interval_with_callback_and_timeout_and_arguments_0(a.as_ref().unchecked_ref(), 1000)?;
     a.forget();
 
