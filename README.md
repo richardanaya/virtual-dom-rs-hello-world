@@ -15,6 +15,7 @@ How to run:
 make setup
 make
 make serve
+http://localhost:8080
 ```
 
 if you want to edit it after its running, just open up a new tab and run `make` to generate new wasm binary, you shouldn't have to restart the server.
