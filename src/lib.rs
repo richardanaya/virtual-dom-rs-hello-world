@@ -43,9 +43,9 @@ pub fn render_to_dom(root_element:web_sys::Element,previous_vdom:&Option<Virtual
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     // Let's first get the body since this is going to be our root node
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-    let body = document.body().expect("document should have a body");
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let body = document.body().unwrap();
 
     let hello_world = HelloWorld::new();
 
@@ -64,7 +64,7 @@ pub fn run() -> Result<(), JsValue> {
             COUNT += 1;
         }
         let mut new_vdom = hello_world.render();
-        let body = document.body().expect("document should have a body");
+        let body = document.body().unwrap();
         render_to_dom(virtual_dom_rs::Element::from(body), &previous_vdom,&mut new_vdom);
     }) as Box<dyn Fn()>);
     window.set_interval_with_callback_and_timeout_and_arguments_0(a.as_ref().unchecked_ref(), 1000)?;
